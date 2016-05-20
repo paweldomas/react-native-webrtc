@@ -323,7 +323,16 @@ RCT_EXPORT_METHOD(peerConnectionGetStats:(nonnull NSString *)trackID objectID:(n
 }
 
 - (void)peerConnection:(RTCPeerConnection*)peerConnection didOpenDataChannel:(RTCDataChannel*)dataChannel {
-
+  NSInteger dataChannelId = dataChannel.streamId;
+  if (-1 != dataChannelId) {
+    self.dataChannels[@(dataChannelId)] = dataChannel;
+    dataChannel.delegate = self;
+  }
+  NSDictionary *body = @{@"id": peerConnection.reactTag,
+                        @"dataChannel": @{@"id": @(dataChannelId),
+                                          @"label": dataChannel.label}};
+  [self.bridge.eventDispatcher sendDeviceEventWithName:@"peerConnectionDidOpenDataChannel"
+                                                  body:body];
 }
 
 @end

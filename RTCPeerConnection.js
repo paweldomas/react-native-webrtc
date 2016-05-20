@@ -12,6 +12,7 @@ var MediaStream = require('./MediaStream');
 var MediaStreamEvent = require('./MediaStreamEvent');
 var MediaStreamTrack = require('./MediaStreamTrack');
 var RTCDataChannel = require('./RTCDataChannel');
+var RTCDataChannelEvent = require('./RTCDataChannelEvent');
 var RTCSessionDescription = require('./RTCSessionDescription');
 var RTCIceCandidate = require('./RTCIceCandidate');
 var RTCIceCandidateEvent = require('./RTCIceCandidateEvent');
@@ -47,6 +48,8 @@ const PEER_CONNECTION_EVENTS = [
   'icegatheringstatechange',
   'negotiationneeded',
   'signalingstatechange',
+  // Peer-to-peer Data API:
+  'datachannel',
   // old:
   'addstream',
   'removestream',
@@ -76,6 +79,11 @@ class RTCPeerConnection extends EventTarget(PEER_CONNECTION_EVENTS) {
   _peerConnectionId: number;
   _remoteStreams: Array<MediaStream> = [];
   _subscriptions: Array<any>;
+
+  /**
+   * The RTCDataChannel.id allocator of this RTCPeerConnection.
+   */
+  _dataChannelIds: Set = new Set();
 
   constructor(configuration) {
     super();
@@ -230,11 +238,66 @@ class RTCPeerConnection extends EventTarget(PEER_CONNECTION_EVENTS) {
         }
         this.iceGatheringState = ev.iceGatheringState;
         this.dispatchEvent(new RTCEvent('icegatheringstatechange'));
+      }),
+      DeviceEventEmitter.addListener('peerConnectionDidOpenDataChannel', ev => {
+        if (ev.id !== this._peerConnectionId) {
+          return;
+        }
+        var evDataChannel = ev.dataChannel;
+        var channel = new RTCDataChannel(evDataChannel.label, evDataChannel);
+        var id = evDataChannel.id;
+        if (typeof id === 'number' && id !== -1) {
+          // XXX webrtc::PeerConnection checked that id was not in use in its
+          // own SID allocator before it invoked us. Additionally, its own SID
+          // allocator is the authority on ResourceInUse. Consequently, it is
+          // (pretty) safe to update our RTCDataChannel.id allocator without
+          // checking for ResourceInUse.
+          this._dataChannelIds.add(id);
+        }
+        this.dispatchEvent(new RTCDataChannelEvent('datachannel', {channel}));
       })
     ];
   }
-  createDataChannel(label, options) {
-    return new RTCDataChannel(this._peerConnectionId, label, options);
+
+  /**
+   * Creates a new RTCDataChannel object with the given label. The
+   * RTCDataChannelInit dictionary can be used to configure properties of the
+   * underlying channel such as data reliability.
+   *
+   * @param {string} label - the value with which the label attribute of the new
+   * instance is to be initialized
+   * @param {RTCDataChannelInit} dataChannelDict - an optional dictionary of
+   * values with which to initialize corresponding attributes of the new
+   * instance such as id
+   */
+  createDataChannel(label: string, dataChannelDict?: ?RTCDataChannelInit) {
+    var id;
+    var dataChannelIds = this._dataChannelIds;
+    if (dataChannelDict && 'id' in dataChannelDict) {
+      id = dataChannelDict.id;
+      if (typeof id !== 'number') {
+        throw new TypeError('DataChannel id must be a number: ' + id);
+      }
+      if (dataChannelIds.contains(id)) {
+        throw new ResourceInUse('DataChannel id already in use: ' + id);
+      }
+    } else {
+      // Allocate a new id.
+      // XXX Remembering the last used/allocated id and then incrementing it to
+      // generate the next id to use will surely be faster. However, I want to
+      // reuse ids (in the future) as the RTCDataChannel.id space is limited to
+      // unsigned short by the standard:
+      // https://www.w3.org/TR/webrtc/#dom-datachannel-id.
+      for (id = 0; id <= 65535 && dataChannelIds.contains(id); id++);
+      // TODO Throw an error if no unused id is available.
+      dataChannelDict = Object.assign({id}, dataChannelDict);
+    }
+    WebRTCModule.createDataChannel(
+        this._peerConnectionId,
+        label,
+        dataChannelDict);
+    dataChannelIds.add(id);
+    return new RTCDataChannel(label, dataChannelDict);
   }
 }
 
