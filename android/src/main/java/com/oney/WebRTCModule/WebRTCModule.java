@@ -592,7 +592,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
         return VideoCapturerAndroid.create(name, new VideoCapturerAndroid.CameraErrorHandler() {
             @Override
             public void onCameraError(String s) {
-
+                Log.e(TAG, "onCameraError: " + s);
             }
         });
     }
