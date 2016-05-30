@@ -12,6 +12,8 @@ function getUserMedia(constraints, success, failure) {
     }
 
     success(stream);
+  }, (error) => {
+    failure(error);
   });
 }
 
