@@ -583,8 +583,9 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
         return params;
     }
 
-    private VideoCapturer getVideoCapturerById(int id) {
-        String name = CameraEnumerationAndroid.getDeviceName(id);
+    private VideoCapturer getVideoCapturerById(Integer id) {
+        String name
+            = id != null ? CameraEnumerationAndroid.getDeviceName(id) : null;
         if (name == null) {
             name = CameraEnumerationAndroid.getNameOfFrontFacingDevice();
         }
