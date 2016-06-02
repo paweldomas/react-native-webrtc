@@ -527,6 +527,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     public void mediaStreamTrackStop(final String id) {
         MediaStreamTrack track = mMediaStreamTracks.get(id);
         if (track == null) {
+            Log.d(TAG, "mediaStreamTrackStop() track is null");
             return;
         }
         track.setEnabled(false);
@@ -540,6 +541,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     public void mediaStreamTrackSetEnabled(final String id, final boolean enabled) {
         MediaStreamTrack track = mMediaStreamTracks.get(id);
         if (track == null) {
+            Log.d(TAG, "mediaStreamTrackSetEnabled() track is null");
             return;
         } else if (track.enabled() == enabled) {
             return;
@@ -550,8 +552,13 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void mediaStreamTrackRelease(final String streamId, final String _trackId) {
         MediaStream stream = mMediaStreams.get(streamId);
+        if (stream == null) {
+            Log.d(TAG, "mediaStreamTrackRelease() stream is null");
+            return;
+        }
         MediaStreamTrack track = mMediaStreamTracks.get(_trackId);
-        if (track == null || stream == null) {
+        if (track == null) {
+            Log.d(TAG, "mediaStreamTrackRelease() track is null");
             return;
         }
         track.setEnabled(false); // should we do this?
@@ -608,156 +615,208 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void peerConnectionAddStream(final String streamId, final int id){
         MediaStream mediaStream = mMediaStreams.get(streamId);
+        if (mediaStream == null) {
+            Log.d(TAG, "peerConnectionAddStream() mediaStream is null");
+            return;
+        }
         PeerConnection peerConnection = mPeerConnections.get(id);
-        boolean result = peerConnection.addStream(mediaStream);
-        Log.d(TAG, "addStream" + result);
+        if (peerConnection != null) {
+            boolean result = peerConnection.addStream(mediaStream);
+            Log.d(TAG, "addStream" + result);
+        } else {
+            Log.d(TAG, "peerConnectionAddStream() peerConnection is null");
+        }
     }
     @ReactMethod
     public void peerConnectionRemoveStream(final String streamId, final int id){
         MediaStream mediaStream = mMediaStreams.get(streamId);
+        if (mediaStream == null) {
+            Log.d(TAG, "peerConnectionRemoveStream() mediaStream is null");
+            return;
+        }
         PeerConnection peerConnection = mPeerConnections.get(id);
-        peerConnection.removeStream(mediaStream);
+        if (peerConnection != null) {
+            peerConnection.removeStream(mediaStream);
+        } else {
+            Log.d(TAG, "peerConnectionRemoveStream() peerConnection is null");
+        }
     }
 
     @ReactMethod
     public void peerConnectionCreateOffer(final int id, final Callback callback) {
-        PeerConnection peerConnection = mPeerConnections.get(id);
+        PeerConnection peerConnection = mPeerConnections.get(id, null);
 
         // MediaConstraints constraints = new MediaConstraints();
         // constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         // constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
 
         Log.d(TAG, "RTCPeerConnectionCreateOfferWithObjectID start");
-        peerConnection.createOffer(new SdpObserver() {
-            @Override
-            public void onCreateSuccess(final SessionDescription sdp) {
-                WritableMap params = Arguments.createMap();
-                params.putString("type", sdp.type.canonicalForm());
-                params.putString("sdp", sdp.description);
-                callback.invoke(true, params);
-            }
-            @Override
-            public void onSetSuccess() {}
+        if (peerConnection != null) {
+            peerConnection.createOffer(new SdpObserver() {
+                @Override
+                public void onCreateSuccess(final SessionDescription sdp) {
+                    WritableMap params = Arguments.createMap();
+                    params.putString("type", sdp.type.canonicalForm());
+                    params.putString("sdp", sdp.description);
+                    callback.invoke(true, params);
+                }
+                @Override
+                public void onSetSuccess() {}
 
-            @Override
-            public void onCreateFailure(String s) {
-                callback.invoke(false, s);
-            }
+                @Override
+                public void onCreateFailure(String s) {
+                    callback.invoke(false, s);
+                }
 
-            @Override
-            public void onSetFailure(String s) {}
-        }, pcConstraints);
+                @Override
+                public void onSetFailure(String s) {}
+            }, pcConstraints);
+        } else {
+            Log.d(TAG, "peerConnectionCreateOffer() peerConnection is null");
+            callback.invoke(false, "peerConnection is null");
+        }
         Log.d(TAG, "RTCPeerConnectionCreateOfferWithObjectID end");
     }
 
     @ReactMethod
     public void peerConnectionCreateAnswer(final int id, final Callback callback) {
-        PeerConnection peerConnection = mPeerConnections.get(id);
+        PeerConnection peerConnection = mPeerConnections.get(id, null);
 
         // MediaConstraints constraints = new MediaConstraints();
         // constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         // constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
 
-        peerConnection.createAnswer(new SdpObserver() {
-            @Override
-            public void onCreateSuccess(final SessionDescription sdp) {
-                WritableMap params = Arguments.createMap();
-                params.putString("type", sdp.type.canonicalForm());
-                params.putString("sdp", sdp.description);
-                callback.invoke(true, params);
-            }
+        Log.d(TAG, "RTCPeerConnectionCreateAnswerWithObjectID start");
+        if (peerConnection != null) {
+            peerConnection.createAnswer(new SdpObserver() {
+                @Override
+                public void onCreateSuccess(final SessionDescription sdp) {
+                    WritableMap params = Arguments.createMap();
+                    params.putString("type", sdp.type.canonicalForm());
+                    params.putString("sdp", sdp.description);
+                    callback.invoke(true, params);
+                }
 
-            @Override
-            public void onSetSuccess() {
-            }
+                @Override
+                public void onSetSuccess() {
+                }
 
-            @Override
-            public void onCreateFailure(String s) {
-                callback.invoke(false, s);
-            }
+                @Override
+                public void onCreateFailure(String s) {
+                    callback.invoke(false, s);
+                }
 
-            @Override
-            public void onSetFailure(String s) {
-            }
-        }, pcConstraints);
+                @Override
+                public void onSetFailure(String s) {
+                }
+            }, pcConstraints);
+        } else {
+            Log.d(TAG, "peerConnectionCreateAnswer() peerConnection is null");
+            callback.invoke(false, "peerConnection is null");
+        }
+        Log.d(TAG, "RTCPeerConnectionCreateAnswerWithObjectID end");
     }
 
     @ReactMethod
     public void peerConnectionSetLocalDescription(ReadableMap sdpMap, final int id, final Callback callback) {
-        PeerConnection peerConnection = mPeerConnections.get(id);
+        PeerConnection peerConnection = mPeerConnections.get(id, null);
 
-        SessionDescription sdp = new SessionDescription(
-            SessionDescription.Type.fromCanonicalForm(sdpMap.getString("type")),
-            sdpMap.getString("sdp")
-        );
+        Log.d(TAG, "peerConnectionSetLocalDescription() start");
+        if (peerConnection != null) {
+            SessionDescription sdp = new SessionDescription(
+                SessionDescription.Type.fromCanonicalForm(sdpMap.getString("type")),
+                sdpMap.getString("sdp")
+            );
 
-        peerConnection.setLocalDescription(new SdpObserver() {
-            @Override
-            public void onCreateSuccess(final SessionDescription sdp) {
-            }
+            peerConnection.setLocalDescription(new SdpObserver() {
+                @Override
+                public void onCreateSuccess(final SessionDescription sdp) {
+                }
 
-            @Override
-            public void onSetSuccess() {
-                callback.invoke(true);
-            }
+                @Override
+                public void onSetSuccess() {
+                    callback.invoke(true);
+                }
 
-            @Override
-            public void onCreateFailure(String s) {
-            }
+                @Override
+                public void onCreateFailure(String s) {
+                }
 
-            @Override
-            public void onSetFailure(String s) {
-                callback.invoke(false, s);
-            }
-        }, sdp);
+                @Override
+                public void onSetFailure(String s) {
+                    callback.invoke(false, s);
+                }
+            }, sdp);
+        } else {
+            Log.d(TAG, "peerConnectionSetLocalDescription() peerConnection is null");
+            callback.invoke(false, "peerConnection is null");
+        }
+        Log.d(TAG, "peerConnectionSetLocalDescription() end");
     }
     @ReactMethod
     public void peerConnectionSetRemoteDescription(final ReadableMap sdpMap, final int id, final Callback callback) {
-        Log.d(TAG, "RTCPeerConnectionSetRemoteDescriptionWithSessionDescriptionwerew");
-        PeerConnection peerConnection = mPeerConnections.get(id);
+        PeerConnection peerConnection = mPeerConnections.get(id, null);
         // final String d = sdpMap.getString("type");
 
-        SessionDescription sdp = new SessionDescription(
-            SessionDescription.Type.fromCanonicalForm(sdpMap.getString("type")),
-            sdpMap.getString("sdp")
-        );
+        Log.d(TAG, "peerConnectionSetRemoteDescription() start");
+        if (peerConnection != null) {
+            SessionDescription sdp = new SessionDescription(
+                SessionDescription.Type.fromCanonicalForm(sdpMap.getString("type")),
+                sdpMap.getString("sdp")
+            );
 
-        peerConnection.setRemoteDescription(new SdpObserver() {
-            @Override
-            public void onCreateSuccess(final SessionDescription sdp) {
-            }
+            peerConnection.setRemoteDescription(new SdpObserver() {
+                @Override
+                public void onCreateSuccess(final SessionDescription sdp) {
+                }
 
-            @Override
-            public void onSetSuccess() {
-                callback.invoke(true);
-            }
+                @Override
+                public void onSetSuccess() {
+                    callback.invoke(true);
+                }
 
-            @Override
-            public void onCreateFailure(String s) {
-            }
+                @Override
+                public void onCreateFailure(String s) {
+                }
 
-            @Override
-            public void onSetFailure(String s) {
-                callback.invoke(false, s);
-            }
-        }, sdp);
+                @Override
+                public void onSetFailure(String s) {
+                    callback.invoke(false, s);
+                }
+            }, sdp);
+        } else {
+            Log.d(TAG, "peerConnectionSetRemoteDescription() peerConnection is null");
+            callback.invoke(false, "peerConnection is null");
+        }
+        Log.d(TAG, "peerConnectionSetRemoteDescription() end");
     }
     @ReactMethod
     public void peerConnectionAddICECandidate(ReadableMap candidateMap, final int id, final Callback callback) {
-        PeerConnection peerConnection = mPeerConnections.get(id);
-        IceCandidate candidate = new IceCandidate(
-            candidateMap.getString("sdpMid"),
-            candidateMap.getInt("sdpMLineIndex"),
-            candidateMap.getString("candidate")
-        );
-        boolean result = peerConnection.addIceCandidate(candidate);
+        boolean result = false;
+        PeerConnection peerConnection = mPeerConnections.get(id, null);
+        Log.d(TAG, "peerConnectionAddICECandidate() start");
+        if (peerConnection != null) {
+            IceCandidate candidate = new IceCandidate(
+                candidateMap.getString("sdpMid"),
+                candidateMap.getInt("sdpMLineIndex"),
+                candidateMap.getString("candidate")
+            );
+            result = peerConnection.addIceCandidate(candidate);
+        } else {
+            Log.d(TAG, "peerConnectionAddICECandidate() peerConnection is null");
+        }
         callback.invoke(result);
+        Log.d(TAG, "peerConnectionAddICECandidate() end");
     }
     @ReactMethod
     public void peerConnectionClose(final int id) {
-        PeerConnection peerConnection = mPeerConnections.get(id);
-        peerConnection.close();
-        mPeerConnections.remove(id);
+        PeerConnection peerConnection = mPeerConnections.get(id, null);
+        if (peerConnection != null) {
+            peerConnection.close();
+            mPeerConnections.remove(id);
+        } else {
+            Log.d(TAG, "peerConnectionClose() peerConnection is null");
+        }
         resetAudio();
     }
     @ReactMethod
@@ -772,6 +831,8 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
             }
 
             mMediaStreams.remove(id);
+        } else {
+            Log.d(TAG, "mediaStreamRelease() mediaStream is null");
         }
     }
     private void resetAudio() {
@@ -813,57 +874,69 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void dataChannelInit(final int peerConnectionId, final int dataChannelId, String label, ReadableMap config) {
-        DataChannel.Init init = new DataChannel.Init();
-        init.id = dataChannelId;
-        if (config != null) {
-            if (config.hasKey("ordered")) {
-                init.ordered = config.getBoolean("ordered");
+        PeerConnection peerConnection = mPeerConnections.get(peerConnectionId, null);
+        if (peerConnection != null) {
+            DataChannel.Init init = new DataChannel.Init();
+            init.id = dataChannelId;
+            if (config != null) {
+                if (config.hasKey("ordered")) {
+                    init.ordered = config.getBoolean("ordered");
+                }
+                if (config.hasKey("maxRetransmitTime")) {
+                    init.maxRetransmitTimeMs = config.getInt("maxRetransmitTime");
+                }
+                if (config.hasKey("maxRetransmits")) {
+                    init.maxRetransmits = config.getInt("maxRetransmits");
+                }
+                if (config.hasKey("protocol")) {
+                    init.protocol = config.getString("protocol");
+                }
+                if (config.hasKey("negotiated")) {
+                    init.ordered = config.getBoolean("negotiated");
+                }
             }
-            if (config.hasKey("maxRetransmitTime")) {
-                init.maxRetransmitTimeMs = config.getInt("maxRetransmitTime");
-            }
-            if (config.hasKey("maxRetransmits")) {
-                init.maxRetransmits = config.getInt("maxRetransmits");
-            }
-            if (config.hasKey("protocol")) {
-                init.protocol = config.getString("protocol");
-            }
-            if (config.hasKey("negotiated")) {
-                init.ordered = config.getBoolean("negotiated");
-            }
+            DataChannel dataChannel = peerConnection.createDataChannel(label, init);
+            mDataChannels.put(dataChannelId, dataChannel);
+        } else {
+            Log.d(TAG, "dataChannelInit() peerConnection is null");
         }
-        PeerConnection peerConnection = mPeerConnections.get(peerConnectionId);
-        DataChannel dataChannel = peerConnection.createDataChannel(label, init);
-        mDataChannels.put(dataChannelId, dataChannel);
     }
 
     @ReactMethod
     public void dataChannelSend(final int dataChannelId, String data, String type) {
-        byte[] byteArray;
-        if (type.equals("text")) {
-            try {
-                byteArray = data.getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                Log.d(TAG, "Could not encode text string as UTF-8.");
+        DataChannel dataChannel = mDataChannels.get(dataChannelId, null);
+        if (dataChannel != null) {
+            byte[] byteArray;
+            if (type.equals("text")) {
+                try {
+                    byteArray = data.getBytes("UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    Log.d(TAG, "Could not encode text string as UTF-8.");
+                    return;
+                }
+            } else if (type.equals("binary")) {
+                byteArray = Base64.decode(data, Base64.NO_WRAP);
+            } else {
+                Log.e(TAG, "Unsupported data type: " + type);
                 return;
             }
-        } else if (type.equals("binary")) {
-            byteArray = Base64.decode(data, Base64.NO_WRAP);
+            ByteBuffer byteBuffer = ByteBuffer.wrap(byteArray);
+            DataChannel.Buffer buffer = new DataChannel.Buffer(byteBuffer, type.equals("binary"));
+            dataChannel.send(buffer);
         } else {
-            Log.e(TAG, "Unsupported data type: " + type);
-            return;
+            Log.d(TAG, "dataChannelSend() dataChannel is null");
         }
-        ByteBuffer byteBuffer = ByteBuffer.wrap(byteArray);
-        DataChannel.Buffer buffer = new DataChannel.Buffer(byteBuffer, type.equals("binary"));
-        DataChannel dataChannel = mDataChannels.get(dataChannelId);
-        dataChannel.send(buffer);
     }
 
     @ReactMethod
     public void dataChannelClose(final int dataChannelId) {
-        DataChannel dataChannel = mDataChannels.get(dataChannelId);
-        dataChannel.close();
-        mDataChannels.remove(dataChannelId);
+        DataChannel dataChannel = mDataChannels.get(dataChannelId, null);
+        if (dataChannel != null) {
+            dataChannel.close();
+            mDataChannels.remove(dataChannelId);
+        } else {
+            Log.d(TAG, "dataChannelClose() dataChannel is null");
+        }
     }
 
     @Nullable
