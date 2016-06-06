@@ -13,9 +13,15 @@ android {
             abiFilters "armeabi-v7a", "x86"
         }
     }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['jniLibs']
+        }
+    }
 }
 
 dependencies {
+    compile fileTree(dir: "libs", include: ["*.jar"])
     compile 'com.facebook.react:react-native:0.19.+'
-    compile 'io.pristine:libjingle:10111@aar'
 }

@@ -194,6 +194,11 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
             }
 
             @Override
+            public void onIceCandidatesRemoved(final IceCandidate[] candidates) {
+                Log.e(TAG, "Unhandled ICE candidate removed!");
+            }
+
+            @Override
             public void onAddStream(MediaStream mediaStream) {
                 String streamId = mediaStream.label();
                 if (mMediaStreams.containsKey(streamId)) {
@@ -531,7 +536,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
             return;
         }
         track.setEnabled(false);
-        track.setState(MediaStreamTrack.State.ENDED);
+        //track.setState(MediaStreamTrack.State.ENDED);
         mMediaStreamTracks.remove(id);
         // what exaclty `detached` means in doc?
         // see: https://www.w3.org/TR/mediacapture-streams/#track-detached
@@ -562,7 +567,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
             return;
         }
         track.setEnabled(false); // should we do this?
-        track.setState(MediaStreamTrack.State.ENDED); // should we do this?
+        //track.setState(MediaStreamTrack.State.ENDED); // should we do this?
         mMediaStreamTracks.remove(_trackId);
         if (track.kind().equals("audio")) {
             stream.removeTrack((AudioTrack)track);
@@ -597,10 +602,32 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
             name = CameraEnumerationAndroid.getNameOfFrontFacingDevice();
         }
 
-        return VideoCapturerAndroid.create(name, new VideoCapturerAndroid.CameraErrorHandler() {
-            @Override
-            public void onCameraError(String s) {
-                Log.e(TAG, "onCameraError: " + s);
+        return VideoCapturerAndroid.create(name,
+            new CameraVideoCapturer.CameraEventsHandler() {
+            // Camera error handler - invoked when camera can not be opened
+            // or any camera exception happens on camera thread.
+            public void onCameraError(String errorDescription) {
+                Log.e(TAG, "onCameraError: " + errorDescription);
+            }
+
+            // Invoked when camera stops receiving frames.
+            public void onCameraFreezed(String errorDescription) {
+                Log.e(TAG, "onCameraFreezed: " + errorDescription);
+            }
+
+            // Callback invoked when camera is opening.
+            public void onCameraOpening(int cameraId) {
+                Log.i(TAG, "onCameraOpening: " + cameraId);
+            }
+
+            // Callback invoked when first camera frame is available after camera is started.
+            public void onFirstFrameAvailable() {
+                Log.i(TAG, "onFirstFrameAvailable");
+            }
+
+            // Callback invoked when camera is closed.
+            public void onCameraClosed() {
+                Log.i(TAG, "onCameraClosed");
             }
         });
     }
