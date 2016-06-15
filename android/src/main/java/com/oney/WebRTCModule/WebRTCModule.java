@@ -749,8 +749,10 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
                                        int id, final Callback statsCb) {
         PeerConnection peerConnection = mPeerConnections.get(id);
         if (peerConnection != null) {
-            MediaStreamTrack mediaTrack = mMediaStreamTracks.get(trackId);
-            if (trackId == null || trackId.isEmpty() || mediaTrack != null) {
+            MediaStreamTrack mediaTrack = null;
+            if (trackId == null
+                    || trackId.isEmpty()
+                    || (mediaTrack = mMediaStreamTracks.get(trackId)) != null) {
                 peerConnection.getStats(
                     new StatsObserver() {
                         public void onComplete(StatsReport[] reports) {
